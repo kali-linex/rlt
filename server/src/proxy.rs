@@ -37,6 +37,7 @@ pub async fn proxy_handler(
 
     if !req.headers().contains_key(UPGRADE) {
         let (mut sender, conn) = hyper::client::conn::http1::handshake(client_stream).await?;
+        let conn = conn.with_upgrades();
         tokio::spawn(async move {
             if let Err(err) = conn.await {
                 log::error!("Connection failed: {:?}", err);
