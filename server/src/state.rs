@@ -7,6 +7,7 @@ use tokio::{
     sync::Mutex,
     time::timeout,
 };
+use easy_upnp::{add_ports, delete_ports, PortMappingProtocol, UpnpConfig};
 
 // See https://tldp.org/HOWTO/html_single/TCP-Keepalive-HOWTO to understand how keepalive work.
 const TCP_KEEPALIVE_TIME: Duration = Duration::from_secs(30);
@@ -62,10 +63,27 @@ impl Client {
         }
     }
 
+    fn get_upnp_config(port: u16) -> UpnpConfig {
+        UpnpConfig {
+            address: None,
+            port,
+            protocol: PortMappingProtocol::TCP,
+            duration: 3600,
+            comment: "Localtunnel ahh".to_owned(),
+        }
+    }
+
     pub async fn listen(&mut self) -> io::Result<u16> {
         let listener = TcpListener::bind("0.0.0.0:0").await?;
         let port = listener.local_addr()?.port();
         self.port = Some(port);
+        log::debug!("Adding client {}", port);
+        let confs: [UpnpConfig; 1] = [Client::get_upnp_config(port)];
+        for r in add_ports(confs) {
+            if let Err(e) = r {
+                log::error!("While UPnPing: {}", e);
+            }
+        }
 
         let sockets = self.available_sockets.clone();
         let max_sockets = self.max_sockets;
@@ -148,6 +166,19 @@ impl Client {
             i -= 1;
         }
         None
+    }
+}
+
+impl Drop for Client {
+    fn drop(&mut self) {
+        if let Some(port) = self.port {
+            log::debug!("Dropping client {}", port);
+            for r in delete_ports([Client::get_upnp_config(port)]) {
+                if let Err(e) = r {
+                    log::error!("While UPnPing: {}", e);
+                }
+            }
+        }
     }
 }
 
