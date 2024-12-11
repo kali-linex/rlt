@@ -16,13 +16,13 @@ jobs:
             os: ubuntu-latest
             target: arm-unknown-linux-gnueabihf
             bin: localtunnel
-            name: localtunnel-linux-arm32.tar.tz
+            name: localtunnel-linux-arm32.tar.gz
             command: build
           - release_for: x86_64
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             bin: localtunnel
-            name: localtunnel-linux-x86_64.tar.tz
+            name: localtunnel-linux-x86_64.tar.gz
             command: build
     runs-on: ${{ matrix.platform.os }}
     steps:
